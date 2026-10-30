@@ -1,0 +1,1 @@
+page { background: #f5f7f4; color: #23372e; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 28rpx; } button::after { border: none; } button { font-size: 28rpx; }
