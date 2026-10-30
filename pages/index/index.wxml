@@ -8,7 +8,7 @@
   <view wx:if="tab==='stats'">
     <view class="section-heading"><text>积累的力量</text><text class="muted">每一次都值得</text></view>
     <view class="metrics"><view><text class="metric-number">{{stats.days}}</text><text>运动天数</text></view><view><text class="metric-number">{{stats.total}}</text><text>累计分钟</text></view><view><text class="metric-number">{{stats.streak}}</text><text>连续天数</text></view></view>
-    <view class="chart-card"><view class="section-heading"><text>最近 7 天</text><text class="muted">{{stats.weekTotal}} 分钟</text></view><view class="chart"><view class="chart-column" wx:for="{{stats.week}}" wx:key="date"><text class="chart-value">{{item.minutes}}</text><view class="bar-track"><view class="bar" style="height:{{item.height}}%"></view></view><text class="chart-label">{{item.label}}</text></view></view><view class="footnote">连续天数从今天或昨天起计算</view></view>
+    <view class="chart-card"><view class="section-heading"><text>最近 7 天</text><text class="muted">{{stats.weekTotal}} 分钟</text></view><view class="chart"><view class="chart-column" wx:for="{{stats.week}}" wx:key="date"><text class="chart-value">{{item.minutes}}</text><view class="bar-track"><view class="bar" style="{{'height:' + item.height + '%;'}}"></view></view><text class="chart-label">{{item.label}}</text></view></view><view class="footnote">连续天数从今天或昨天起计算</view></view>
   </view>
   <block wx:else>
     <view class="section-heading"><text>{{tab==='today'?'今天的运动':'全部运动记录'}}</text><text class="muted">{{visible.length}} 条记录</text></view>
