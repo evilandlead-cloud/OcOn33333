@@ -1,2 +1,47 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>花地湾 · 内容运营台</title><link rel="stylesheet" href="style.css">
-<body><aside><div class="brand">花地湾<span>古玩城 · 内容运营台</span></div><div class="label">WORKSPACE / 本地工作流</div><nav id="nav"></nav><div class="aside-foot">十一月宣传计划<br><small>本地 SQLite 存储 · 无需登录</small></div></aside><main><header><div><small>花地湾古玩城 / 新媒体运营</small><h1 id="heading"></h1></div><div class="actions"><span id="saveState">正在连接</span><button onclick="backup()">导出备份</button><button onclick="document.getElementById('restore').click()">恢复备份</button><button class="primary" onclick="edit()">＋ 新建内容</button></div></header><input hidden id="restore" type="file" accept="application/json"><div id="view"></div><footer>数据口径：各平台手动录入的累计值；跨平台不去重。建议发布后 24 小时、72 小时和 7 天更新并复盘。</footer></main><dialog id="modal"><form id="form"><div class="modal-head"><h2 id="modalTitle"></h2><button type="button" onclick="modal.close()">×</button></div><div id="fields"></div><div class="modal-actions"><button type="button" onclick="modal.close()">取消</button><button class="primary">保存</button></div></form></dialog><script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f5f7">
+  <title>花地湾 · 内容运营台</title>
+  <link rel="stylesheet" href="style.css?v=2">
+</head>
+<body>
+  <a class="skip-link" href="#content">跳转到主要内容</a>
+  <aside aria-label="工作区">
+    <div class="brand">
+      <div class="brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 4c-5-3-10 2-7 7l7 9 7-9c3-5-2-10-7-7Z"/><path d="M12 6v11M7 9l5 5 5-5"/></svg></div>
+      <div class="brand-copy"><strong>花地湾</strong><span>内容运营工作台</span></div>
+    </div>
+    <div class="label workspace-label">工作空间</div>
+    <nav id="nav" aria-label="主要导航"></nav>
+    <div class="aside-foot">
+      <div class="sidebar-status"><span class="status-dot" aria-hidden="true"></span>本地工作空间</div>
+      <small>每一个好内容，都值得被看见。</small>
+    </div>
+  </aside>
+  <main id="content" tabindex="-1">
+    <header>
+      <div class="header-copy"><small>花地湾古玩城 <span aria-hidden="true">/</span> 新媒体运营</small><h1 id="heading">总览</h1><p id="pageDescription">内容、数据与下一步，一目了然。</p></div>
+      <div class="actions">
+        <span id="saveState" role="status" aria-live="polite">正在连接…</span>
+        <button class="button-icon" onclick="backup()" title="导出备份" aria-label="导出备份"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4"/></svg></button>
+        <button class="button-icon" onclick="document.getElementById('restore').click()" title="恢复备份" aria-label="恢复备份"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 16V4m-4 4 4-4 4 4M5 16v4h14v-4"/></svg></button>
+        <button class="primary new-content" onclick="edit()"><span aria-hidden="true">＋</span> 新建内容</button>
+      </div>
+    </header>
+    <input hidden id="restore" type="file" accept="application/json">
+    <div id="view"></div>
+    <footer>各平台数据手动录入，跨平台不去重。建议在发布后 24 小时、72 小时和 7 天更新数据并复盘。</footer>
+  </main>
+  <dialog id="modal" aria-labelledby="modalTitle">
+    <form id="form">
+      <div class="modal-head"><h2 id="modalTitle"></h2><button class="button-icon" type="button" onclick="document.getElementById('modal').close()" aria-label="关闭弹窗">×</button></div>
+      <div id="fields"></div>
+      <div class="modal-actions"><button type="button" onclick="document.getElementById('modal').close()">取消</button><button class="primary">保存</button></div>
+    </form>
+  </dialog>
+  <script src="app.js?v=2"></script>
+</body>
+</html>

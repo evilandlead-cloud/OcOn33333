@@ -2,6 +2,14 @@
 
 独立项目；不修改 OcOn33333 微信小程序。仅依赖 Python 3 标准库。
 
+![运营台界面预览](preview.png)
+
+界面采用浅灰白底、系统字体、半透明导航与蓝色强调，适配电脑和手机浏览器。
+
+## 更新已有版本
+
+已在使用旧版时，可只替换 `static` 文件夹，再在浏览器按 `Ctrl + F5` 刷新。请保留原来的 `data` 文件夹，里面是你录入的运营数据；也可以先在网页导出 JSON 备份。
+
 ## 下载与启动
 
 在 GitHub 仓库首页选择 **Code → Download ZIP**，解压后进入其中的 `huadi-ops` 文件夹。也可下载仓库根目录的 `huadi-ops.zip`，该压缩包只包含本运营台。
@@ -13,7 +21,7 @@ cd OcOn33333/huadi-ops
 python3 server.py
 ```
 
-如果下载的是单独的 `huadi-ops.zip`，进入解压后的 `huadi-ops` 文件夹即可，无需上面的仓库名路径。Windows 可用 `py server.py` 代替 `python3 server.py`。
+如果下载的是单独的 `huadi-ops.zip`，进入解压后的 `huadi-ops` 文件夹即可，无需上面的仓库名路径。Windows 可用 `python server.py`（或 `py server.py`）代替 `python3 server.py`。
 
 在运行机器的浏览器打开 `http://127.0.0.1:8765`。如将项目下载到自己的电脑，在该文件夹执行相同命令即可使用。默认仅接受本机连接。停止服务按 Ctrl+C；重启后数据保留。
 
