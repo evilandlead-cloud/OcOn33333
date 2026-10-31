@@ -320,3 +320,62 @@ summary { cursor: pointer; font-size: 11px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+/* The idea studio keeps planning details one click away. */
+.ideas-heading { display:flex; align-items:center; justify-content:space-between; gap:22px; margin:6px 0 23px; }
+.ideas-heading h2 { font-size:24px; letter-spacing:-.7px; margin:0 0 8px; }
+.ideas-heading .section-kicker { margin-bottom:9px; }
+.ideas-heading p { color:var(--secondary); font-size:12px; margin:0; line-height:1.8; }
+.ideas-heading > button { flex:none; padding:11px 20px; border-radius:24px; font-size:12px; }
+.idea-filters { padding:16px; background:#fff; border:1px solid var(--line); border-radius:14px; }
+.idea-filters select { min-width:115px; }
+.ideas-navigation { display:flex; justify-content:space-between; gap:18px; align-items:center; margin:22px 0 19px; }
+.ideas-navigation .platform-tabs { margin:0; flex:none; }
+.ideas-navigation > .muted { font-size:11px; line-height:1.7; text-align:right; }
+.favorite-count { font-size:10px; color:#86868e; margin-left:2px; }
+.topic-top { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.topic-card { display:flex; flex-direction:column; }
+.topic-card .topic-hook { padding:14px 15px; border-radius:11px; background:#f6f8fc; margin:6px 0 3px; }
+.topic-hook small { font-size:10px; color:#8b95a5; }
+.topic-card .topic-hook p { margin:7px 0 0; color:#424f65; line-height:1.8; font-size:13px; }
+.topic-card .topic-script { border-color:#ededf1; padding:13px 15px; }
+.topic-script summary { color:#5d6e89; line-height:1.7; }
+.topic-script ol { padding-left:19px; margin:15px 0; }
+.topic-script li { color:#62626c; font-size:12px; line-height:1.95; margin:7px 0; }
+.topic-card .topic-script p { margin:12px 0 0; }
+.topic-card .topic-reason { font-size:11px; line-height:1.9; color:#85858e; margin:16px 0 20px; }
+.topic-actions { display:flex; gap:10px; justify-content:space-between; align-items:center; margin-top:auto; padding-top:15px; border-top:1px solid #f0f0f4; }
+.topic-actions button { font-size:11px; border-color:#e3ecf8; background:#f5f9ff; color:var(--blue); }
+.topic-actions .favorite-button { color:#8c8c95; border-color:#e7e7ed; background:white; }
+.topic-actions .is-favorite { color:#b58328; background:#fffaf0; border-color:#f2e4c7; }
+.topic-empty { grid-column:1/-1; }
+.topic-empty button { margin:15px auto 0; }
+.integration-guide { padding:0; margin:0 0 22px; overflow:hidden; background:#fff; border-radius:15px; }
+.integration-guide > summary { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px; font-size:13px; color:#43434b; }
+.integration-guide > summary > span:first-child { display:flex; align-items:center; gap:9px; }
+.integration-guide svg { width:17px; height:17px; color:var(--blue); }
+.integration-body { border-top:1px solid var(--line); padding:4px 24px 16px; font-size:12px; line-height:1.9; color:#6e6e73; }
+.integration-body ol { padding-left:20px; }
+.integration-body li { padding:5px 0; }
+.integration-body a { color:var(--blue); text-decoration:none; }
+.integration-body a:hover { text-decoration:underline; }
+@media (max-width:760px) {
+  .ideas-heading h2 { font-size:21px; }
+  .idea-filters .search-wrap { flex-basis:100%; }
+  .ideas-navigation { flex-wrap:wrap; }
+  .ideas-navigation > .muted { text-align:left; }
+}
+@media (max-width:520px) {
+  .ideas-heading { align-items:flex-start; gap:12px; }
+  .ideas-heading h2 { font-size:19px; line-height:1.6; }
+  .ideas-heading > button { padding:9px 12px; font-size:11px; }
+  .ideas-heading > button svg { width:14px; height:14px; }
+  .idea-filters { padding:13px; }
+  .idea-filters select { min-width:0; flex:1; max-width:none; }
+  .idea-filters > .muted { font-size:10px; }
+  .ideas-navigation .platform-tabs { width:100%; }
+  .integration-guide > summary { font-size:11px; padding:15px; }
+  .integration-body { padding:2px 17px 13px; }
+}
+
+.topic-hook .topic-format { display:block; margin-top:9px; color:#7d8a9d; line-height:1.8; }

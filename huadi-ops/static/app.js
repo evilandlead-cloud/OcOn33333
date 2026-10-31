@@ -1,8 +1,24 @@
 let state,tab='总览',filter='',query='',platform='视频号',editing=null,busy=false;
+let ideaCategory='全部',ideaPlatform='全部',ideaKeyword='',ideaShelf='recommended';
+const categories=['寻宝记','人物简谈','空间美学','招商推广','器物分享','周末地摊'];
 const statuses=['待策划','待拍摄','制作中','待发布','已发布','已复盘'],platforms=['视频号','小红书','抖音'],keys=['views','likes','comments','saves','shares','leads'],names=['播放 / 阅读','点赞','评论','收藏','分享','有效咨询'];
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),num=n=>Number(n||0).toLocaleString('zh-CN'),sum=(items,k)=>items.reduce((a,x)=>a+Object.values(x.metrics||{}).reduce((b,m)=>b+Number(m[k]||0),0),0),done=x=>['已发布','已复盘'].includes(x.status);
-async function save(next){if(busy)throw Error('正在保存，请稍后');busy=true;$('#saveState').textContent='正在保存…';try{const r=await fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(next)});const d=await r.json();if(!r.ok)throw Error(d.error);state=next;$('#saveState').textContent='已保存至本地';render()}catch(e){$('#saveState').textContent='保存失败';alert(e.message);throw e}finally{busy=false}}
-function go(t){tab=t;filter='';query='';render()}
+async function save(next){next=normalizeState(next);if(busy)throw Error('正在保存，请稍后');busy=true;$('#saveState').textContent='正在保存…';try{const r=await fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(next)});const d=await r.json();if(!r.ok)throw Error(d.error);state=next;$('#saveState').textContent='已保存至本地';render()}catch(e){$('#saveState').textContent='保存失败';alert(e.message);throw e}finally{busy=false}}
+function normalizeState(data) {
+  const memory=data.ideaMemory;
+  if (!memory || typeof memory!=='object' || Array.isArray(memory)) data.ideaMemory={};
+  const m=data.ideaMemory;
+  for (const key of ['seen','favorites','batch']) if (!Array.isArray(m[key])) m[key]=[];
+  m.seen=m.seen.filter(x=>typeof x==='string');
+  for (const key of ['favorites','batch']) m[key]=m[key].filter(x=>x && typeof x.id==='string' && typeof x.title==='string' && Array.isArray(x.shots));
+  if (!Number.isSafeInteger(m.generation) || m.generation<0) m.generation=0;
+  return data;
+}
+function go(t) {
+  tab=t;filter='';query='';render();
+  if (t==='选题灵感' && !state.ideaMemory.generation && !busy) nextTopics();
+}
+
 const iconPaths = {
   overview: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
   calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18m-13 4h1m6 0h1m-8 3h1"/>',
@@ -60,21 +76,82 @@ function filtered(){return state.items.filter(x=>(!filter||x.status===filter)&&`
 function plan(){return '<div class="note">排期为建议日期，可点击编辑调整；空间美学无法推进时，可按原计划改为寻宝记图文。实际发布时请在各平台数据中登记链接。</div>'+toolbar()+'<div id="table">'+planTable()+'</div>'}
 function planTable(){return `<div class="table-wrap"><table><thead><tr><th>排期</th><th>内容与栏目</th><th>形式</th><th>负责人</th><th>进度</th><th>操作</th></tr></thead><tbody>${filtered().map(x=>`<tr><td>${esc(x.date)}</td><td><div class="title">${esc(x.title)}</div><small class="muted">${esc(x.category)}</small></td><td><span class="badge ${x.kind==='视频'?'video':''}">${esc(x.kind)}</span></td><td>${esc(x.owner)||'待分配'}</td><td>${statusBadge(x.status)}</td><td><button onclick="edit(${x.id})">编辑</button> <button onclick="record(${x.id})">录数据</button></td></tr>`).join('')||'<tr><td colspan="6" class="empty">没有匹配内容</td></tr>'}</tbody></table></div>`}
 function refreshTable(){$('#table').innerHTML=planTable()}
-function metrics(){let v=sum(state.items,'views'),eng=['likes','comments','saves','shares'].reduce((a,k)=>a+sum(state.items,k),0);return `<div class="cards">${card('播放 / 阅读',num(v),'未录入的指标不计入')}${card('互动总量',num(eng),'点赞 + 评论 + 收藏 + 分享')}${card('互动率',v?(eng/v*100).toFixed(2)+'%':'—','互动总量 ÷ 播放 / 阅读')}${card('每千次曝光咨询',v?(sum(state.items,'leads')/v*1000).toFixed(2):'—','有效咨询 ÷ 曝光 × 1000')}</div><div class="note">手动录入累计指标，不会自动同步平台。每次更新覆盖当前值并保留快照，可查看 24h / 72h / 7d 变化。不同平台口径不同，请在复盘中解释。</div><div class="toolbar platform-tabs" role="group" aria-label="选择数据平台">${platforms.map(p=>`<button aria-pressed="${p===platform}" class="${p===platform?'primary':''}" onclick="platform='${p}';render()">${p}</button>`).join('')}</div><div class="table-wrap"><table><thead><tr><th>内容</th>${names.map(n=>`<th>${n}</th>`).join('')}<th>更新时间</th><th></th></tr></thead><tbody>${state.items.map(x=>{const m=x.metrics[platform]||{};return `<tr><td><div class="title">${esc(x.title)}</div></td>${keys.map(k=>`<td>${m[k]===undefined?'—':num(m[k])}</td>`).join('')}<td>${m.updated?esc(m.updated.slice(0,16).replace('T',' ')):'未录入'}</td><td><button onclick="record(${x.id})">录入 / 历史</button></td></tr>`}).join('')}</tbody></table></div>`}
+function metrics(){let v=sum(state.items,'views'),eng=['likes','comments','saves','shares'].reduce((a,k)=>a+sum(state.items,k),0);return `<div class="cards">${card('播放 / 阅读',num(v),'未录入的指标不计入')}${card('互动总量',num(eng),'点赞 + 评论 + 收藏 + 分享')}${card('互动率',v?(eng/v*100).toFixed(2)+'%':'—','互动总量 ÷ 播放 / 阅读')}${card('每千次曝光咨询',v?(sum(state.items,'leads')/v*1000).toFixed(2):'—','有效咨询 ÷ 曝光 × 1000')}</div><div class="note">手动录入累计指标，不会自动同步平台。每次更新覆盖当前值并保留快照，可查看 24h / 72h / 7d 变化。不同平台口径不同，请在复盘中解释。</div><div class="toolbar platform-tabs" role="group" aria-label="选择数据平台">${platforms.map(p=>`<button aria-pressed="${p===platform}" class="${p===platform?'primary':''}" onclick="platform='${p}';render()">${p}</button>`).join('')}</div>${platform==='抖音'?douyinGuide():''}<div class="table-wrap"><table><thead><tr><th>内容</th>${names.map(n=>`<th>${n}</th>`).join('')}<th>更新时间</th><th></th></tr></thead><tbody>${state.items.map(x=>{const m=x.metrics[platform]||{};return `<tr><td><div class="title">${esc(x.title)}</div></td>${keys.map(k=>`<td>${m[k]===undefined?'—':num(m[k])}</td>`).join('')}<td>${m.updated?esc(m.updated.slice(0,16).replace('T',' ')):'未录入'}</td><td><button onclick="record(${x.id})">录入 / 历史</button></td></tr>`}).join('')}</tbody></table></div>`}
 function reviews(){return `<div class="note">建议每周复盘：目标是否达成 → 数据证据 → 原因假设 → 下次只改一个变量。填写复盘后，可在内容编辑中将状态推进为“已复盘”。</div><div class="recommendations">${state.items.map(x=>`<section class="panel">${statusBadge(x.status)}<h3>${esc(x.title)}</h3><div class="muted">曝光 ${num(sum([x],'views'))} · 有效咨询 ${num(sum([x],'leads'))}</div><p class="review">${esc(x.review)||'尚未复盘。发布后录入数据，再用事实判断选题、开头、封面与转化路径。'}</p><button onclick="review(${x.id})">${x.review?'编辑复盘':'开始复盘'}</button></section>`).join('')}</div>`}
-const recommendations=[['寻宝记','100 元预算，在花地湾能淘到什么？','预算挑战 + 实际发现','跟拍 3 个摊位，展示实拍细节与商户报价；不作真伪和升值承诺。结尾引导收藏周末路线。'],['人物简谈','一张老票证，藏着怎样的广州生活？','人物故事 + 城市记忆','邀请林仕荣挑选 3 张票证，分别讲用途、年代与个人记忆；字幕标注口述来源。'],['空间美学','在花地湾，找到一处可以安静待着的角落','空间细节 + 逛店路线','拍入口、全景、光影与器物特写；征得店主同意，补充营业时间与位置。'],['招商推广','办一场小型文化展，需要怎样的空间？','真实场景 + 招商转化','实拍动线、可用区域、配套；面积、价格与档期须向招商核实。结尾引导预约看场。'],['器物分享','秋冬手串配色：深棕、暖白与一点绿','季节场景 + 收藏清单','拍三组搭配，讲色彩、尺寸与佩戴场景；商品信息向商户确认。'],['周末地摊','第一次逛古玩地摊，先走这条路线','周末出行 + 新手指南','提前核实当周开摊时间，拍入口与路线；给出询价礼仪、交通和天气备选方案。']];
-function ideas(){return `<div class="note">以下是可执行的编辑建议，并非实时热榜。推荐优先级参考本地已录入的栏目互动率；无数据时标记“待验证”。发布前请人工核实平台趋势、商户信息与拍摄许可。</div><div class="recommendations">${recommendations.map((r,i)=>{const a=state.items.filter(x=>x.category===r[0]),v=sum(a,'views'),e=['likes','comments','saves','shares'].reduce((n,k)=>n+sum(a,k),0);return `<section class="panel"><div class="eyebrow">IDEA / ${String(i+1).padStart(2,'0')}</div><h3>${r[1]}</h3><span class="badge">${r[0]} · ${v?'栏目互动率 '+(e/v*100).toFixed(2)+'%':'待验证'}</span><p><b>选题依据：</b>${r[2]}<br><b>执行方式：</b>${r[3]}</p><button onclick="adopt(${i})">＋ 加入计划</button></section>`}).join('')}</div>`}
+function topicOptions(options, value) {
+  return options.map(v=>`<option value="${esc(v)}" ${value===v?'selected':''}>${esc(v)}</option>`).join('');
+}
+function currentTopics() {
+  const m=state.ideaMemory;
+  if (ideaShelf==='recommended') return m.batch;
+  return m.favorites.filter(x=>(ideaCategory==='全部'||x.category===ideaCategory)&&(ideaPlatform==='全部'||x.platform===ideaPlatform)&&(!ideaKeyword||`${x.title} ${x.category} ${x.hook} ${x.shots.join(' ')}`.includes(ideaKeyword)));
+}
+function searchTopicKeyword(value) {
+  ideaKeyword=value;
+  if(ideaShelf==='favorites') {
+    const grid=$('#view .topic-grid');
+    if(grid)grid.innerHTML=currentTopics().map((x,i)=>topicCard(x,i)).join('')||'<section class="panel empty topic-empty">没有匹配的收藏，试试其他关键词。</section>';
+  }
+}
+function ideas() {
+  const memory=state.ideaMemory, topics=currentTopics();
+  const context=memory.context;
+  return `<div class="ideas-heading"><div><div class="section-kicker">CREATIVE STUDIO</div><h2>下一条好内容，从这里开始。</h2><p>每批最多 6 个选题，带着开头、镜头与转化动作出发。</p></div><button class="primary" onclick="nextTopics()">${icon('sparkle')} 换一批</button></div>
+  <div class="note">本地策划引擎 · 非实时热榜，无需 API 或密钥。结合栏目表现与不同切入角度推荐；已推荐的方向会去重，推荐库用尽时会提示。收藏与推荐记录会随备份保存。</div>
+  <div class="toolbar idea-filters">
+    <select aria-label="选题栏目" onchange="ideaCategory=this.value;if(ideaShelf==='favorites')render()">${topicOptions(['全部',...categories],ideaCategory)}</select>
+    <select aria-label="选题平台" onchange="ideaPlatform=this.value;if(ideaShelf==='favorites')render()">${topicOptions(['全部',...platforms],ideaPlatform)}</select>
+    <div class="search-wrap"><span class="search-icon">${icon('search')}</span><input aria-label="选题关键词" placeholder="关键词，如：玉器、票证、看场" value="${esc(ideaKeyword)}" oninput="searchTopicKeyword(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();if(ideaShelf==='favorites')searchTopicKeyword(this.value);else nextTopics()}"></div>
+    <span class="muted">${ideaShelf==='favorites'?'筛选当前收藏':'筛选条件用于下一批'}</span>
+  </div>
+  <div class="ideas-navigation"><div class="platform-tabs" role="group" aria-label="选题视图"><button aria-pressed="${ideaShelf==='recommended'}" class="${ideaShelf==='recommended'?'primary':''}" onclick="ideaShelf='recommended';render()">推荐选题</button><button aria-pressed="${ideaShelf==='favorites'}" class="${ideaShelf==='favorites'?'primary':''}" onclick="ideaShelf='favorites';render()">我的收藏 <span class="favorite-count">${memory.favorites.length}</span></button></div><span class="muted">${context&&ideaShelf==='recommended'?`当前批次：${esc(context.category)} · ${esc(context.platform)}${context.keyword?' · '+esc(context.keyword):''} · 还可推荐 ${esc(memory.remaining??'—')} 个方向`:'收藏好想法，合适时再开始。'}</span></div>
+  <div class="recommendations topic-grid">${topics.map((x,i)=>topicCard(x,i)).join('')||`<section class="panel empty topic-empty">${ideaShelf==='favorites'?'还没有匹配的收藏。点击选题卡片上的收藏，留住好想法。':'当前条件没有新的推荐。试试其他栏目或关键词，再点“换一批”。'}<br><button class="text-button" onclick="clearTopicFilters()">清空筛选</button></section>`}</div>`;
+}
+function topicCard(x,index) {
+  const favorite=state.ideaMemory.favorites.some(a=>a.id===x.id),planned=state.items.some(a=>a.title===x.title);
+  return `<section class="panel topic-card"><div class="topic-top"><span class="eyebrow">${esc(x.category)}</span><span class="badge">${esc(x.platform)} · ${esc(x.kind)}</span></div><h3>${esc(x.title)}</h3><div class="topic-hook"><small>开头这样说</small><p>${esc(x.hook)}</p><small class="topic-format">${esc(x.formatGuidance||'')}</small></div><details class="topic-script"><summary>查看拍摄步骤与转化引导</summary><ol>${x.shots.map(t=>`<li>${esc(t)}</li>`).join('')}</ol><p><b>结尾引导：</b>${esc(x.cta)}</p><p class="muted">${esc(x.verification)}</p></details><p class="topic-reason"><b>推荐依据：</b>${esc(x.reason)}</p><div class="topic-actions"><button class="favorite-button ${favorite?'is-favorite':''}" aria-pressed="${favorite}" aria-label="${favorite?'取消收藏':'收藏选题'}：${esc(x.title)}" onclick="toggleTopicFavorite(${index})">${favorite?'★ 已收藏':'☆ 收藏'}</button><button onclick="adoptTopic(${index})" ${planned?'disabled':''}>${planned?'已在计划':'加入计划'}</button></div></section>`;
+}
+async function nextTopics() {
+  if (busy) return;
+  const next=structuredClone(state),memory=next.ideaMemory;
+  const result=TopicEngine.generate({category:ideaCategory,platform:ideaPlatform,keyword:ideaKeyword.trim(),seen:memory.seen,items:next.items,count:6,seed:memory.generation});
+  memory.batch=result.topics;
+  memory.seen=[...new Set([...memory.seen,...result.topics.map(x=>x.id)])];
+  memory.generation+=1;memory.remaining=result.remaining;memory.total=result.total;
+  memory.context={category:ideaCategory,platform:ideaPlatform,keyword:ideaKeyword.trim()};
+  ideaShelf='recommended';
+  try {await save(next)} catch {} // save reports errors and preserves the previous state.
+}
+function clearTopicFilters() {
+  ideaCategory='全部';ideaPlatform='全部';ideaKeyword='';
+  if(ideaShelf==='favorites')render();else nextTopics();
+}
+async function toggleTopicFavorite(index) {
+  if (busy)return;
+  const topic=currentTopics()[index];if(!topic)return;
+  const next=structuredClone(state),a=next.ideaMemory.favorites;
+  const found=a.findIndex(x=>x.id===topic.id);
+  if(found<0)a.push(structuredClone(topic));else a.splice(found,1);
+  try {await save(next)} catch {}
+}
+function adoptTopic(index) {
+  const x=currentTopics()[index];if(!x)return;
+  const notes=`平台：${x.platform}\n形式建议：${x.formatGuidance||x.kind}\n开头：${x.hook}\n拍摄步骤：\n${x.shots.map((s,i)=>(i+1)+'. '+s).join('\n')}\n结尾引导：${x.cta}\n核实事项：${x.verification}\n推荐依据：${x.reason}`;
+  edit(null,{title:x.title,category:x.category,kind:x.kind,notes});
+}
+function douyinGuide() {
+  return `<details class="integration-guide"><summary><span>${icon('chart')} 抖音 API 接入指引</span><span class="badge">尚未接入</span></summary><div class="integration-body"><p>你目前没有开放平台应用，先完成以下步骤。当前数据仍使用手动录入。</p><ol><li><b>入驻：</b>打开 <a href="https://open.douyin.com/" target="_blank" rel="noopener noreferrer">抖音开放平台 ↗</a>，注册并按应用类型要求完成开发者认证。</li><li><b>创建应用：</b>按真实用途选择应用类型，说明“花地湾古玩城自有账号视频数据分析”，按控制台要求准备应用说明、隐私政策与回调地址。</li><li><b>申请权限：</b>在控制台查找并申请授权用户视频列表、视频数据能力。是否开放、所需资质与审核要求，以控制台为准。</li><li><b>账号授权：</b>审核通过后，通过官方 OAuth 流程让运营账号授权；由本地服务端或正式回调服务保存和刷新令牌，再同步已获授权的视频指标。</li><li><b>绑定内容：</b>将抖音视频 ID 关联本地计划。播放、点赞、评论、分享按实际字段同步；收藏、有效招商咨询无法从其他指标推算，仍需单独记录。</li></ol><p class="muted">普通视频数据权限不等于实时热榜权限。应用密钥和令牌只放在受保护的服务端配置，不要放进网页、聊天或 GitHub。回调能否使用本机地址须以应用类型与审核要求为准。</p><p>详细说明见下载包内 <b>DOUYIN_API.md</b>。申请后提供应用类型和获批的接口名称即可继续配置，无需发送密钥。</p></div></details>`;
+}
 function leads(){return `<div class="hero"><div><h2>从内容兴趣，到预约看场</h2><p>只记录必要的业务跟进信息。咨询指标用于内容归因，线索档案用于跟进，两者分别统计。</p></div><button class="primary" onclick="lead()">＋ 新增线索</button></div><div class="table-wrap"><table><thead><tr><th>称呼 / 商户</th><th>来源内容</th><th>意向</th><th>跟进阶段</th><th>下次跟进</th><th>备注</th><th></th></tr></thead><tbody>${state.leads.map((l,i)=>`<tr><td>${esc(l.name)}</td><td>${esc(state.items.find(x=>x.id===Number(l.source))?.title||'其他')}</td><td>${esc(l.need)}</td><td>${esc(l.stage)}</td><td>${esc(l.next)}</td><td>${esc(l.note)}</td><td><button onclick="lead(${i})">跟进</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">还没有线索，收到咨询后建立第一条跟进记录。</td></tr>'}</tbody></table></div>`}
 function input(n,t,v='',type='text'){return `<label>${t}<input name="${n}" type="${type}" value="${esc(v)}" ${type==='number'?'min="0" step="1"':''}></label>`}
 function select(n,t,opts,v){return `<label>${t}<select name="${n}">${opts.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select></label>`}
 function textarea(n,t,v){return `<label>${t}<textarea name="${n}">${esc(v)}</textarea></label>`}
 function open(title,fields,submit){$('#modalTitle').textContent=title;$('#fields').innerHTML=fields;$('#form').onsubmit=async e=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.target));try{await submit(data);$('#modal').close()}catch{}};$('#modal').showModal()}
-function edit(id,preset={}){const x=state.items.find(x=>x.id===id)||{id:Date.now(),title:'',kind:'视频',category:'寻宝记',date:'2026-11-01',status:'待策划',owner:'',notes:'',metrics:{},review:'',...preset};open(id?'编辑内容':'新建内容',input('title','内容标题',x.title)+`<div class="formgrid">${select('kind','内容形式',['视频','图文'],x.kind)}${select('category','栏目',recommendations.map(x=>x[0]),x.category)}${input('date','计划日期',x.date,'date')}${select('status','进度',statuses,x.status)}${input('owner','负责人',x.owner)}</div>`+textarea('notes','拍摄要点 / 依赖 / 备注',x.notes)+(id?'<button type="button" class="danger" onclick="removeItem('+id+')">删除此内容</button>':''),async d=>{if(!d.title.trim()||!d.date)throw alert('请填写标题和日期');if(d.status==='已复盘'&&!x.review)throw alert('请先填写复盘');const next=structuredClone(state);if(id)next.items=next.items.map(a=>a.id===id?{...x,...d}:a);else next.items.push({...x,...d});await save(next)})}
+function edit(id,preset={}){const x=state.items.find(x=>x.id===id)||{id:Date.now(),title:'',kind:'视频',category:'寻宝记',date:'2026-11-01',status:'待策划',owner:'',notes:'',metrics:{},review:'',...preset};open(id?'编辑内容':'新建内容',input('title','内容标题',x.title)+`<div class="formgrid">${select('kind','内容形式',['视频','图文'],x.kind)}${select('category','栏目',categories,x.category)}${input('date','计划日期',x.date,'date')}${select('status','进度',statuses,x.status)}${input('owner','负责人',x.owner)}</div>`+textarea('notes','拍摄要点 / 依赖 / 备注',x.notes)+(id?'<button type="button" class="danger" onclick="removeItem('+id+')">删除此内容</button>':''),async d=>{if(!d.title.trim()||!d.date)throw alert('请填写标题和日期');if(d.status==='已复盘'&&!x.review)throw alert('请先填写复盘');const next=structuredClone(state);if(id)next.items=next.items.map(a=>a.id===id?{...x,...d}:a);else next.items.push({...x,...d});await save(next)})}
 async function removeItem(id){if(confirm('删除内容会同时删除其指标和复盘，建议先导出备份。确认删除？')){let n=structuredClone(state);n.items=n.items.filter(x=>x.id!==id);await save(n);$('#modal').close()}}
 function record(id){const x=state.items.find(x=>x.id===id),m=x.metrics[platform]||{};open('录入数据 · '+platform,`<div class="note">${esc(x.title)}<br>累计值，非本次增量；未填写指标按 0 保存。更新时间使用北京时间。</div><div class="formgrid">${keys.map((k,i)=>input(k,names[i],m[k]??0,'number')).join('')}</div>`+input('url','发布链接（选填）',m.url||'','url')+`<details><summary>历史快照（${(m.history||[]).length}）</summary>${(m.history||[]).slice().reverse().map(h=>`<p class="muted">${esc(h.updated)} · 曝光 ${num(h.views)} · 咨询 ${num(h.leads)}</p>`).join('')||'暂无历史'}</details>`,async d=>{let n=structuredClone(state),item=n.items.find(a=>a.id===id);const vals=Object.fromEntries(keys.map(k=>[k,Number(d[k])]));if(Object.values(vals).some(v=>!Number.isFinite(v)||v<0))throw alert('请填写非负指标');const updated=new Date().toLocaleString('sv-SE',{timeZone:'Asia/Shanghai'});item.metrics[platform]={...vals,url:d.url,updated,history:[...(m.history||[]),{...vals,updated}]};await save(n)})}
 function review(id){const x=state.items.find(x=>x.id===id);open('内容复盘',textarea('review','目标 / 数据证据 / 原因假设 / 下次行动',x.review||'目标：\n数据证据：\n原因假设：\n下次行动（负责人、截止日期）：'),async d=>{let n=structuredClone(state);n.items.find(a=>a.id===id).review=d.review;await save(n)})}
-function adopt(i){let r=recommendations[i];edit(null,{title:r[1],category:r[0],kind:['空间美学','招商推广','器物分享','周末地摊'].includes(r[0])?'图文':'视频',notes:r[3]})}
 function lead(i){const l=state.leads[i]||{name:'',need:'',stage:'新咨询',next:'',note:'',source:''};open('招商线索',input('name','称呼 / 商户',l.name)+`<label>来源内容<select name="source"><option value="">其他 / 未知</option>${state.items.map(x=>`<option value="${x.id}" ${String(l.source)===String(x.id)?'selected':''}>${esc(x.title)}</option>`).join('')}</select></label>`+input('need','需求 / 意向',l.need)+select('stage','阶段',['新咨询','已联系','已预约','已到访','洽谈中','已成交','暂缓'],l.stage)+input('next','下次跟进',l.next,'date')+textarea('note','跟进备注（避免存储敏感个人资料）',l.note),async d=>{if(!d.name.trim())throw alert('请填写称呼');let n=structuredClone(state);if(i===undefined)n.leads.push(d);else n.leads[i]=d;await save(n)})}
 function backup(){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.href=u;a.download='花地湾运营备份-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 $('#restore').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(d.version!==1||!Array.isArray(d.items)||!Array.isArray(d.leads))throw Error('不是有效的运营备份');if(confirm('恢复将覆盖当前全部数据。请先导出当前备份，确认继续？'))await save(d)}catch(err){alert('恢复失败：'+err.message)}e.target.value=''};
-fetch('/api/state').then(r=>{if(!r.ok)throw Error('读取失败');return r.json()}).then(d=>{state=d;$('#saveState').textContent='已连接本地数据库';render()}).catch(e=>{$('#view').textContent='连接失败，请确认本地服务已启动并刷新页面。';$('#saveState').textContent='离线'});
+fetch('/api/state').then(r=>{if(!r.ok)throw Error('读取失败');return r.json()}).then(d=>{state=normalizeState(d);$('#saveState').textContent='已连接本地数据库';render()}).catch(e=>{$('#view').textContent='连接失败，请确认本地服务已启动并刷新页面。';$('#saveState').textContent='离线'});
