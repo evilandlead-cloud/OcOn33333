@@ -5,9 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f5f5f7">
   <title>花地湾 · 内容运营台</title>
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
+  <section id="authScreen" class="auth-shell" aria-labelledby="authTitle">
+    <div class="auth-card"><div class="auth-mark" aria-hidden="true">花</div><div class="section-kicker">HUADIWAN · TEAM WORKSPACE</div><h1 id="authTitle">连接团队工作空间</h1><p id="authDescription">正在检查主机连接…</p>
+      <form id="authForm" hidden><label>登录账号<input id="authUsername" name="username" autocomplete="username" required maxlength="80"></label><label id="setupNameLabel" hidden>管理员姓名<input id="authName" name="display_name" autocomplete="name" maxlength="80"></label><label>密码<input id="authPassword" name="password" type="password" autocomplete="current-password" required></label><button id="authSubmit" class="primary" type="submit">登录工作台</button></form>
+      <p id="authMessage" class="auth-error" role="alert"></p><p id="authHint" class="auth-hint"></p>
+    </div>
+  </section>
   <a class="skip-link" href="#content">跳转到主要内容</a>
   <aside aria-label="工作区">
     <div class="brand">
@@ -17,7 +23,7 @@
     <div class="label workspace-label">工作空间</div>
     <nav id="nav" aria-label="主要导航"></nav>
     <div class="aside-foot">
-      <div class="sidebar-status"><span class="status-dot" aria-hidden="true"></span>本地工作空间</div>
+      <div class="sidebar-status"><span class="status-dot" aria-hidden="true"></span>办公室协作空间</div><div id="currentIdentity" class="current-identity"></div><div class="account-actions"><button onclick="changePassword()">修改密码</button><button onclick="logout()">退出登录</button></div>
       <small>每一个好内容，都值得被看见。</small>
     </div>
   </aside>
@@ -27,22 +33,22 @@
       <div class="actions">
         <span id="saveState" role="status" aria-live="polite">正在连接…</span>
         <button class="button-icon" onclick="backup()" title="导出备份" aria-label="导出备份"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4"/></svg></button>
-        <button class="button-icon" onclick="document.getElementById('restore').click()" title="恢复备份" aria-label="恢复备份"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 16V4m-4 4 4-4 4 4M5 16v4h14v-4"/></svg></button>
+        <button id="restoreButton" class="button-icon" onclick="document.getElementById('restore').click()" title="恢复备份" aria-label="恢复备份"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 16V4m-4 4 4-4 4 4M5 16v4h14v-4"/></svg></button>
         <button class="primary new-content" onclick="edit()"><span aria-hidden="true">＋</span> 新建内容</button>
       </div>
     </header>
     <input hidden id="restore" type="file" accept="application/json">
-    <div id="view"></div>
+    <div id="collaborationNotice" class="collaboration-notice" role="status" hidden><span id="collaborationMessage"></span><button onclick="refreshWorkspace()">刷新团队数据</button></div><div id="view"></div>
     <footer>各平台数据手动录入，跨平台不去重。建议在发布后 24 小时、72 小时和 7 天更新数据并复盘。</footer>
   </main>
   <dialog id="modal" aria-labelledby="modalTitle">
     <form id="form">
       <div class="modal-head"><h2 id="modalTitle"></h2><button class="button-icon" type="button" onclick="document.getElementById('modal').close()" aria-label="关闭弹窗">×</button></div>
-      <div id="fields"></div>
+      <div id="modalNotice" class="modal-conflict" role="alert" hidden></div><div id="fields"></div>
       <div class="modal-actions"><button type="button" onclick="document.getElementById('modal').close()">取消</button><button class="primary">保存</button></div>
     </form>
   </dialog>
-  <script src="topics.js?v=3"></script>
-  <script src="app.js?v=3"></script>
+  <script src="topics.js?v=4"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
